@@ -70,14 +70,67 @@
             padding: 40px 0;
             color: var(--light-text);
         }
-        
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .card-body {
+            padding: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .card-text {
+            flex-grow: 1;
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        .price {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--success-color, #28a745);
+        }
+
         .product-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-top: 10px;
         }
-        
+
         .product-category {
             font-size: 0.9rem;
             color: var(--light-text);
@@ -106,7 +159,7 @@
                 name="search" 
                 placeholder="Search for items..." 
                 class="form-control search-input"
-                value="{{ search_query }}"
+                value="{{ search_query or '' }}"
             >
             <select name="category" class="form-control category-select">
                 <option value="">All Categories</option>
@@ -137,13 +190,13 @@
         <div class="product-grid">
             {% for product in products %}
                 <div class="card">
-                    <img src="{{ url_for('static', filename='images/uploads/' + product.image) }}" 
+                    <img src="{{ url_for('static', filename='images/uploads/' + (product.image or 'placeholder.png')) }}" 
                          alt="{{ product.title }}" 
                          class="card-img"
-                         onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'">
+                         
                     <div class="card-body">
                         <h3 class="card-title">{{ product.title }}</h3>
-                        <p class="card-text">{{ product.description|truncate(100) }}</p>
+                        <p class="card-text">{{ product.description|truncate(100, True, '...') }}</p>
                         <div class="product-info">
                             <span class="price">${{ "%.2f"|format(product.price) }}</span>
                             <span class="product-category">{{ product.category.name }}</span>
@@ -165,11 +218,9 @@
 
 {% block scripts %}
     <script>
-        // Any index-specific JavaScript can go here
         document.addEventListener('DOMContentLoaded', function() {
-            // Example: Add animation effect when scrolling
             const productCards = document.querySelectorAll('.card');
-            
+
             function checkVisibility() {
                 productCards.forEach(card => {
                     const rect = card.getBoundingClientRect();
@@ -177,22 +228,19 @@
                         rect.top >= 0 &&
                         rect.top <= (window.innerHeight || document.documentElement.clientHeight)
                     );
-                    
                     if (isVisible) {
                         card.style.opacity = '1';
                     }
                 });
             }
-            
-            // Set initial state
+
             productCards.forEach(card => {
                 card.style.opacity = '0';
                 card.style.transition = 'opacity 0.5s ease-in-out';
             });
-            
-            // Check visibility on load and scroll
+
             window.addEventListener('scroll', checkVisibility);
-            checkVisibility(); // Check on page load
+            checkVisibility();
         });
     </script>
 {% endblock %}

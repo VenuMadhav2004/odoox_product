@@ -1,15 +1,18 @@
 from datetime import datetime
-from forms import LoginForm, SignupForm, ProductForm, UserProfileForm
+from forms import LoginForm, SignupForm, ProductForm, UserProfileForm, OTPVerificationForm, ResendOTPForm
 import secrets
-from helpers import allowed_file
+from helpers import allowed_file, create_otp_record, verify_otp, send_otp_email, cleanup_expired_otps
 from flask import Flask, session, request, redirect, url_for, flash, render_template
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
-from extensions import db 
+from extensions import db, mail
+from config import DevelopmentConfig
+
 # Initialize Flask app
 app = Flask(__name__)
+app.config.from_object(DevelopmentConfig)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ecofinds.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -19,11 +22,12 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Initialize the database
+# Initialize extensions
 db.init_app(app)
+mail.init_app(app)
 
 # Import models after initializing db to avoid circular imports
-from models import User, Product, Category, CartItem, Purchase
+from models import User, Product, Category, CartItem, Purchase, OTPRecord
 
 def init_db():
     """Initialize database tables and create default categories"""
@@ -49,6 +53,23 @@ def login_required(f):
         if 'user_id' not in session:
             flash('Please log in to access this page', 'warning')
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Verification required decorator
+def verification_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page', 'warning')
+            return redirect(url_for('login'))
+        
+        user = User.query.get(session['user_id'])
+        if not user.is_verified:
+            flash('Please verify your email first', 'warning')
+            return redirect(url_for('verify_email'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -91,8 +112,13 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and check_password_hash(user.password, password):
+            if not user.is_verified:
+                flash('Please verify your email before logging in', 'warning')
+                return redirect(url_for('verify_email', email=email))
+            
             session['user_id'] = user.id
             session['username'] = user.username
+            session.permanent = True  # Keep user logged in
             flash('Login successful!', 'success')
             return redirect(url_for('index'))
         else:
@@ -112,21 +138,98 @@ def signup():
             flash('Email already registered', 'danger')
             return render_template('signup.html', form=form)
             
-        # Create new user
+        # Create new user (unverified)
         hashed_password = generate_password_hash(form.password.data)
         new_user = User(
             username=form.username.data,
             email=form.email.data,
-            password=hashed_password
+            password=hashed_password,
+            is_verified=False
         )
         
         db.session.add(new_user)
         db.session.commit()
         
-        flash('Account created successfully! Please login.', 'success')
-        return redirect(url_for('login'))
+        # Generate and send OTP
+        otp_code = create_otp_record(new_user.id, 'registration')
+        success, message = send_otp_email(
+            new_user.email, 
+            new_user.username, 
+            otp_code, 
+            'registration'
+        )
+        
+        if success:
+            flash('Account created! Please check your email for verification code.', 'success')
+            return redirect(url_for('verify_email', email=new_user.email))
+        else:
+            flash(f'Account created but failed to send verification email: {message}', 'warning')
+            return redirect(url_for('verify_email', email=new_user.email))
     
     return render_template('signup.html', form=form)
+
+# Route for email verification
+@app.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    email = request.args.get('email') or request.form.get('email')
+    form = OTPVerificationForm()
+    
+    if not email:
+        flash('Email not provided', 'danger')
+        return redirect(url_for('signup'))
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('User not found', 'danger')
+        return redirect(url_for('signup'))
+    
+    if user.is_verified:
+        flash('Email already verified', 'info')
+        return redirect(url_for('login'))
+    
+    if form.validate_on_submit():
+        otp_code = form.otp_code.data
+        
+        success, message = verify_otp(user.id, otp_code, 'registration')
+        
+        if success:
+            user.is_verified = True
+            db.session.commit()
+            flash('Email verified successfully! You can now log in.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash(message, 'danger')
+    
+    return render_template('verify_email.html', form=form, email=email)
+
+# Route for resending OTP
+@app.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    email = request.form.get('email')
+    
+    if not email:
+        flash('Email not provided', 'danger')
+        return redirect(url_for('signup'))
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('User not found', 'danger')
+        return redirect(url_for('signup'))
+    
+    if user.is_verified:
+        flash('Email already verified', 'info')
+        return redirect(url_for('login'))
+    
+    # Generate new OTP
+    otp_code = create_otp_record(user.id, 'registration')
+    success, message = send_otp_email(user.email, user.username, otp_code, 'registration')
+    
+    if success:
+        flash('New verification code sent to your email', 'success')
+    else:
+        flash(f'Failed to send verification code: {message}', 'danger')
+    
+    return redirect(url_for('verify_email', email=email))
 
 # Route for logout
 @app.route('/logout')
@@ -135,9 +238,9 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
 
-# Route for user dashboard
+# Route for user dashboard (requires verification)
 @app.route('/dashboard', methods=['GET', 'POST'])
-@login_required
+@verification_required
 def dashboard():
     user = User.query.get(session['user_id'])
     form = UserProfileForm(obj=user)
@@ -166,9 +269,9 @@ def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     return render_template('product_detail.html', product=product)
 
-# Route for adding a new product
+# Route for adding a new product (requires verification)
 @app.route('/product/add', methods=['GET', 'POST'])
-@login_required
+@verification_required
 def add_product():
     form = ProductForm()
     form.category.choices = [(c.id, c.name) for c in Category.query.all()]
@@ -204,9 +307,9 @@ def add_product():
     
     return render_template('add_product.html', form=form)
 
-# Route for editing a product
+# Route for editing a product (requires verification)
 @app.route('/product/edit/<int:product_id>', methods=['GET', 'POST'])
-@login_required
+@verification_required
 def edit_product(product_id):
     product = Product.query.get_or_404(product_id)
     
@@ -251,9 +354,9 @@ def edit_product(product_id):
     
     return render_template('edit_product.html', form=form, product=product)
 
-# Route for deleting a product
+# Route for deleting a product (requires verification)
 @app.route('/product/delete/<int:product_id>', methods=['POST'])
-@login_required
+@verification_required
 def delete_product(product_id):
     product = Product.query.get_or_404(product_id)
     
@@ -277,9 +380,9 @@ def delete_product(product_id):
     flash('Product deleted successfully', 'success')
     return redirect(url_for('dashboard'))
 
-# Route for adding a product to cart
+# Route for adding a product to cart (requires verification)
 @app.route('/cart/add/<int:product_id>', methods=['POST'])
-@login_required
+@verification_required
 def add_to_cart(product_id):
     product = Product.query.get_or_404(product_id)
     
@@ -312,9 +415,9 @@ def add_to_cart(product_id):
     
     return redirect(url_for('cart'))
 
-# Route for removing a product from cart
+# Route for removing a product from cart (requires verification)
 @app.route('/cart/remove/<int:item_id>', methods=['POST'])
-@login_required
+@verification_required
 def remove_from_cart(item_id):
     cart_item = CartItem.query.get_or_404(item_id)
     
@@ -329,9 +432,9 @@ def remove_from_cart(item_id):
     flash('Product removed from cart', 'success')
     return redirect(url_for('cart'))
 
-# Route for viewing cart
+# Route for viewing cart (requires verification)
 @app.route('/cart')
-@login_required
+@verification_required
 def cart():
     cart_items = CartItem.query.filter_by(user_id=session['user_id']).all()
     
@@ -340,9 +443,9 @@ def cart():
     
     return render_template('cart.html', cart_items=cart_items, total=total)
 
-# Route for checkout/purchase
+# Route for checkout/purchase (requires verification)
 @app.route('/checkout', methods=['POST'])
-@login_required
+@verification_required
 def checkout():
     cart_items = CartItem.query.filter_by(user_id=session['user_id']).all()
     
@@ -375,17 +478,22 @@ def checkout():
     flash('Purchase completed successfully!', 'success')
     return redirect(url_for('purchases'))
 
-# Route for viewing previous purchases
+# Route for viewing previous purchases (requires verification)
 @app.route('/purchases')
-@login_required
+@verification_required
 def purchases():
     user_purchases = Purchase.query.filter_by(user_id=session['user_id']).order_by(Purchase.purchase_date.desc()).all()
     return render_template('purchases.html', purchases=user_purchases)
 
-# Error handlers
+# Cleanup task - run periodically to clean expired OTPs
+@app.before_request
+def cleanup_otps():
+    """Clean up expired OTPs before each request (you might want to do this less frequently in production)"""
+    if request.endpoint and request.endpoint not in ['static', 'favicon.ico']:
+        cleanup_expired_otps()
+
 
 
 if __name__ == '__main__':
-    
     init_db()
     app.run(debug=True)

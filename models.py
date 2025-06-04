@@ -1,8 +1,5 @@
 from extensions import db  # Import the single shared instance
-from datetime import datetime
-
-# Initialize db without binding it to an app yet
-
+from datetime import datetime, timedelta
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -13,15 +10,37 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(20))
     address = db.Column(db.String(200))
+    is_verified = db.Column(db.Boolean, default=False)  # Email verification status
     created_at = db.Column(db.DateTime, default=datetime.now)
     
     # Relationships
     products = db.relationship('Product', backref='seller', lazy=True)
     cart_items = db.relationship('CartItem', backref='user', lazy=True)
     purchases = db.relationship('Purchase', backref='buyer', lazy=True)
+    otp_records = db.relationship('OTPRecord', backref='user', lazy=True, cascade="all, delete-orphan")
     
     def __repr__(self):
         return f'<User {self.username}>'
+
+
+class OTPRecord(db.Model):
+    __tablename__ = 'otp_records'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    otp_code = db.Column(db.String(10), nullable=False)
+    otp_type = db.Column(db.String(20), nullable=False)  # 'registration', 'login', 'password_reset'
+    is_used = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    
+    # Foreign key
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    def is_expired(self):
+        return datetime.now() > self.expires_at
+    
+    def __repr__(self):
+        return f'<OTPRecord {self.otp_code} for User {self.user_id}>'
 
 
 class Category(db.Model):

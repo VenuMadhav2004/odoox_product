@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField, FloatField, SelectField, FileField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional
+from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional, Regexp
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[
@@ -27,6 +27,19 @@ class SignupForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(),
         EqualTo('password', message='Passwords must match')
+    ])
+
+class OTPVerificationForm(FlaskForm):
+    otp_code = StringField('Enter 6-digit OTP', validators=[
+        DataRequired(),
+        Length(min=6, max=6, message='OTP must be exactly 6 digits'),
+        Regexp('^[0-9]+$', message='OTP must contain only numbers')
+    ])
+
+class ResendOTPForm(FlaskForm):
+    email = StringField('Email', validators=[
+        DataRequired(),
+        Email(message='Enter a valid email address')
     ])
 
 class UserProfileForm(FlaskForm):
@@ -64,5 +77,3 @@ class ProductForm(FlaskForm):
         DataRequired()
     ])
     image = FileField('Product Image')
-
-    
