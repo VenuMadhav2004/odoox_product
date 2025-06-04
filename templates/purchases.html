@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Your Purchases - EcoFinds{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1><i class="fas fa-shopping-bag"></i> Your Purchases</h1>
+    
+    {% if purchases %}
+        <div class="purchases-filter">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="recent">Recent (30 days)</button>
+            <button class="filter-btn" data-filter="older">Older</button>
+        </div>
+        
+        <div class="purchases-list">
+            {% for purchase in purchases %}
+            <div class="purchase-item" data-date="{{ purchase.purchase_date.strftime('%Y-%m-%d') }}">
+                <div class="purchase-header">
+                    <div class="purchase-date">
+                        <i class="fas fa-calendar-alt"></i> {{ purchase.purchase_date.strftime('%B %d, %Y') }}
+                    </div>
+                    <div class="purchase-id">
+                        Order #{{ purchase.id }}
+                    </div>
+                </div>
+                
+                <div class="purchase-content">
+                    <div class="product-image">
+                        <img src="{{ url_for('static', filename='images/uploads/' + purchase.product.image) }}" alt="{{ purchase.product.title }}">
+                    </div>
+                    
+                    <div class="product-details">
+                        <h3>{{ purchase.product.title }}</h3>
+                        <p class="product-category">
+                            <span class="category-tag">{{ purchase.product.category.name }}</span>
+                        </p>
+                        <p class="product-seller">Purchased from: {{ purchase.product.seller.username }}</p>
+                    </div>
+                    
+                    <div class="purchase-price">${{ "%.2f"|format(purchase.price) }}</div>
+                    
+                    <div class="purchase-actions">
+                        <a href="{{ url_for('product_detail', product_id=purchase.product_id) }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-eye"></i> View Item
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="no-results" style="display: none;">
+            <p>No purchases found for the selected filter.</p>
+        </div>
+    {% else %}
+        <div class="empty-purchases">
+            <i class="fas fa-shopping-bag fa-5x"></i>
+            <h2>No purchase history yet</h2>
+            <p>When you make purchases, they will appear here.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Start Shopping</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Purchase filtering functionality
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const purchaseItems = document.querySelectorAll('.purchase-item');
+        const noResults = document.querySelector('.no-results');
+        
+        // Get current date
+        const today = new Date();
+        
+        // Calculate date 30 days ago
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                const filter = this.getAttribute('data-filter');
+                let itemsVisible = 0;
+                
+                purchaseItems.forEach(item => {
+                    const purchaseDate = new Date(item.getAttribute('data-date'));
+                    
+                    if (filter === 'all') {
+                        item.style.display = 'block';
+                        itemsVisible++;
+                    } else if (filter === 'recent' && purchaseDate >= thirtyDaysAgo) {
+                        item.style.display = 'block';
+                        itemsVisible++;
+                    } else if (filter === 'older' && purchaseDate < thirtyDaysAgo) {
+                        item.style.display = 'block';
+                        itemsVisible++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide no results message
+                if (itemsVisible === 0 && noResults) {
+                    noResults.style.display = 'block';
+                } else if (noResults) {
+                    noResults.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+
+<style>
+    .purchases-filter {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        background-color: #f5f5f5;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-btn:hover {
+        background-color: #e0e0e0;
+    }
+    
+    .filter-btn.active {
+        background-color: var(--primary-color);
+        color: #fff;
+        border-color: var(--primary-color);
+    }
+    
+    .purchases-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .purchase-item {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        overflow: hidden;
+        transition: transform 0.2s ease;
+    }
+    
+    .purchase-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .purchase-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        background-color: #f9f9f9;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .purchase-date {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .purchase-id {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .purchase-content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 1.5rem;
+    }
+    
+    .product-image {
+        flex: 0 0 100px;
+        margin-right: 1.5rem;
+    }
+    
+    .product-image img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    
+    .product-details {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .product-details h3 {
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+    }
+    
+    .product-category {
+        margin-bottom: 0.5rem;
+    }
+    
+    .category-tag {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .product-seller {
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .purchase-price {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--primary-dark);
+        margin: 0 1.5rem;
+    }
+    
+    .purchase-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 2rem 0;
+        color: #666;
+        font-style: italic;
+    }
+    
+    .empty-purchases {
+        text-align: center;
+        padding: 3rem 0;
+    }
+    
+    .empty-purchases i {
+        color: var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-purchases h2 {
+        margin-bottom: 1rem;
+    }
+    
+    .empty-purchases p {
+        margin-bottom: 2rem;
+        color: #666;
+    }
+    
+    @media (max-width: 768px) {
+        .purchase-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .product-image {
+            margin-right: 0;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+        
+        .product-image img {
+            width: 100%;
+            height: 200px;
+        }
+        
+        .purchase-price {
+            margin: 1rem 0;
+        }
+        
+        .purchase-actions {
+            width: 100%;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+    }
+</style>
+{% endblock %}

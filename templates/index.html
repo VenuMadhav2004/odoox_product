@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}EcoFinds - Sustainable Marketplace{% endblock %}
+
+{% block extra_styles %}
+    <style>
+        .search-section {
+            background-color: var(--secondary-color);
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        .category-select {
+            min-width: 150px;
+        }
+
+        .hero-section {
+            text-align: center;
+            padding: 40px 0;
+            margin-bottom: 30px;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--light-text);
+            margin-bottom: 25px;
+        }
+
+        .category-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .category-pill {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .category-pill:hover, .category-pill.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .no-products {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--light-text);
+        }
+        
+        .product-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .product-category {
+            font-size: 0.9rem;
+            color: var(--light-text);
+            background-color: var(--secondary-color);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="hero-section">
+        <h1 class="hero-title">Welcome to EcoFinds</h1>
+        <p class="hero-subtitle">Buy and sell pre-loved items to promote sustainability and reduce waste</p>
+        {% if 'user_id' not in session %}
+            <a href="{{ url_for('signup') }}" class="btn btn-primary">Join Now</a>
+        {% else %}
+            <a href="{{ url_for('add_product') }}" class="btn btn-primary">Sell an Item</a>
+        {% endif %}
+    </div>
+
+    <div class="search-section">
+        <form action="{{ url_for('index') }}" method="GET" class="search-form">
+            <input 
+                type="text" 
+                name="search" 
+                placeholder="Search for items..." 
+                class="form-control search-input"
+                value="{{ search_query }}"
+            >
+            <select name="category" class="form-control category-select">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_id|int == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Search</button>
+            {% if search_query or category_id %}
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="category-pills">
+        <a href="{{ url_for('index') }}" class="category-pill {% if not category_id %}active{% endif %}">All</a>
+        {% for category in categories %}
+            <a href="{{ url_for('index', category=category.id) }}" 
+               class="category-pill {% if category_id|int == category.id %}active{% endif %}">
+                {{ category.name }}
+            </a>
+        {% endfor %}
+    </div>
+
+    {% if products %}
+        <div class="product-grid">
+            {% for product in products %}
+                <div class="card">
+                    <img src="{{ url_for('static', filename='images/uploads/' + product.image) }}" 
+                         alt="{{ product.title }}" 
+                         class="card-img"
+                         onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'">
+                    <div class="card-body">
+                        <h3 class="card-title">{{ product.title }}</h3>
+                        <p class="card-text">{{ product.description|truncate(100) }}</p>
+                        <div class="product-info">
+                            <span class="price">${{ "%.2f"|format(product.price) }}</span>
+                            <span class="product-category">{{ product.category.name }}</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-primary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-products">
+            <h2>No products found</h2>
+            <p>Try adjusting your search criteria or check back later for new listings.</p>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Any index-specific JavaScript can go here
+        document.addEventListener('DOMContentLoaded', function() {
+            // Example: Add animation effect when scrolling
+            const productCards = document.querySelectorAll('.card');
+            
+            function checkVisibility() {
+                productCards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    const isVisible = (
+                        rect.top >= 0 &&
+                        rect.top <= (window.innerHeight || document.documentElement.clientHeight)
+                    );
+                    
+                    if (isVisible) {
+                        card.style.opacity = '1';
+                    }
+                });
+            }
+            
+            // Set initial state
+            productCards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transition = 'opacity 0.5s ease-in-out';
+            });
+            
+            // Check visibility on load and scroll
+            window.addEventListener('scroll', checkVisibility);
+            checkVisibility(); // Check on page load
+        });
+    </script>
+{% endblock %}

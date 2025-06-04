@@ -1,0 +1,297 @@
+
+{% extends "base.html" %}
+
+{% block title %}Add New Product - EcoFinds{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1><i class="fas fa-plus-circle"></i> Add New Product</h1>
+    <p class="mb-4">List your pre-loved items and contribute to a more sustainable future.</p>
+    
+    <form method="POST" enctype="multipart/form-data" id="productForm">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-control", placeholder="Enter product title") }}
+            {% if form.title.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.title.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-control", placeholder="Describe your product in detail", rows="4") }}
+            {% if form.description.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.description.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="char-count">
+                <span id="charCount">0</span>/500 characters
+            </div>
+        </div>
+        
+        <div class="form-group">
+            {{ form.category.label(class="form-label") }}
+            {{ form.category(class="form-control") }}
+            {% if form.category.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.category.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.price.label(class="form-label") }}
+            <div class="price-input">
+                <span class="currency-symbol">$</span>
+                {{ form.price(class="form-control", placeholder="0.00") }}
+            </div>
+            {% if form.price.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.price.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Product Image</label>
+            <div class="image-upload-container">
+                <div class="image-preview" id="imagePreview">
+                    <img src="/static/images/uploads/placeholder.png" alt="Image Preview" id="previewImg">
+                    <div class="placeholder-text">
+                        <i class="fas fa-image"></i>
+                        <p>Preview</p>
+                    </div>
+                </div>
+                <div class="upload-controls">
+                    <label for="image" class="custom-file-upload">
+                        <i class="fas fa-upload"></i> Choose Image
+                    </label>
+                    <input type="file" name="image" id="image" class="file-input" accept="image/*">
+                    <p class="file-name" id="fileName">No file selected</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group submit-section">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> List Product
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Image preview functionality
+    const imageInput = document.getElementById('image');
+    const previewImg = document.getElementById('previewImg');
+    const imagePreview = document.getElementById('imagePreview');
+    const fileNameDisplay = document.getElementById('fileName');
+    
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                imagePreview.classList.add('has-image');
+                fileNameDisplay.textContent = file.name;
+            }
+            
+            reader.readAsDataURL(file);
+        } else {
+            previewImg.src = '/static/images/uploads/placeholder.png';
+            imagePreview.classList.remove('has-image');
+            fileNameDisplay.textContent = 'No file selected';
+        }
+    });
+    
+    // Character counter for description
+    const descriptionTextarea = document.querySelector('textarea[name="description"]');
+    const charCount = document.getElementById('charCount');
+    
+    descriptionTextarea.addEventListener('input', function() {
+        const currentLength = this.value.length;
+        charCount.textContent = currentLength;
+        
+        if (currentLength > 500) {
+            charCount.classList.add('text-danger');
+        } else {
+            charCount.classList.remove('text-danger');
+        }
+    });
+    
+    // Form validation
+    const productForm = document.getElementById('productForm');
+    
+    productForm.addEventListener('submit', function(e) {
+        const title = document.querySelector('input[name="title"]');
+        const price = document.querySelector('input[name="price"]');
+        
+        let valid = true;
+        
+        if (!title.value.trim()) {
+            highlightError(title);
+            valid = false;
+        }
+        
+        if (!price.value || isNaN(parseFloat(price.value)) || parseFloat(price.value) <= 0) {
+            highlightError(price);
+            valid = false;
+        }
+        
+        if (!valid) {
+            e.preventDefault();
+            window.scrollTo(0, 0);
+        }
+    });
+    
+    function highlightError(element) {
+        element.classList.add('error-field');
+        element.addEventListener('input', function() {
+            element.classList.remove('error-field');
+        }, { once: true });
+    }
+</script>
+
+<style>
+    .char-count {
+        font-size: 0.85rem;
+        color: #666;
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+    
+    .text-danger {
+        color: var(--danger) !important;
+    }
+    
+    .price-input {
+        position: relative;
+    }
+    
+    .currency-symbol {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+    }
+    
+    input[name="price"] {
+        padding-left: 25px;
+    }
+    
+    .image-upload-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .image-preview {
+        width: 200px;
+        height: 200px;
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background-color: #f5f5f5;
+    }
+    
+    .image-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        z-index: 1;
+    }
+    
+    .image-preview.has-image .placeholder-text {
+        display: none;
+    }
+    
+    .placeholder-text {
+        text-align: center;
+        color: #999;
+    }
+    
+    .placeholder-text i {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-controls {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .custom-file-upload {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background-color: var(--info);
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    
+    .custom-file-upload:hover {
+        background-color: #0b7dda;
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .file-name {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #666;
+    }
+    
+    .submit-section {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .error-field {
+        border-color: var(--danger) !important;
+        box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2) !important;
+    }
+    
+    @media (max-width: 576px) {
+        .image-upload-container {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .image-preview {
+            width: 100%;
+            max-width: 300px;
+        }
+    }
+</style>
+{% endblock %}
