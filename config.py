@@ -16,6 +16,7 @@ class Config:
 
     # Upload settings
     UPLOAD_FOLDER = 'static/images/uploads'
+    PROFILE_FOLDER = 'static/images/profiles'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload size
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 

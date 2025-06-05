@@ -77,25 +77,23 @@ class UserProfileForm(FlaskForm):
         Optional(),
         Length(max=200)
     ])
+    bio = TextAreaField('Bio', validators=[Length(max=500)]) 
     submit = SubmitField('Update Profile')
 
 class ProductForm(FlaskForm):
     title = StringField('Product Title', validators=[
         DataRequired(),
-        Length(min=3, max=100)
+        Length(min=3, max=100, message='Title must be between 3 and 100 characters')
     ])
     description = TextAreaField('Description', validators=[
         DataRequired(),
-        Length(min=10)
+        Length(min=10, message='Description must be at least 10 characters long')
     ])
     price = FloatField('Price ($)', validators=[
         DataRequired(),
-        NumberRange(min=0.01)
+        NumberRange(min=0.01, message='Price must be greater than 0')
     ])
     category = SelectField('Category', coerce=int, validators=[
         DataRequired()
     ])
-    image = FileField('Product Image', validators=[
-        FileAllowed(ALLOWED_EXTENSIONS, 'Only image files are allowed!')
-    ])
-    submit = SubmitField('Submit Product')
+    image = FileField('Product Image')

@@ -33,7 +33,7 @@ db.init_app(app)
 mail.init_app(app)
 
 # Import models after initializing db to avoid circular imports
-from models import User, Product, Category, CartItem, Purchase, OTPRecord, Dispute,Rating,Auction,Bid,WishlistItem
+from models import User, Product, Category, CartItem, Purchase, OTPRecord, Dispute,Rating,Auction,Bid,WishlistItem,Conversation, Message
 
 def init_db():
     """Initialize database tables and create default categories"""
@@ -103,6 +103,25 @@ def inject_user():
 def inject_categories():
     categories = Category.query.all()
     return dict(categories=categories)
+
+@app.context_processor
+def inject_user():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        # Calculate total unread messages
+        unread_count = 0
+        if user:
+            unread_count = db.session.query(func.count(Message.id)).join(Conversation).filter(
+                or_(
+                    Conversation.user1_id == user.id,
+                    Conversation.user2_id == user.id
+                ),
+                Message.sender_id != user.id,
+                Message.is_read == False
+            ).scalar()
+        return dict(current_user=user, unread_messages=unread_count)
+    return dict(current_user=None, unread_messages=0)
+
 
 # Route for home page
 @app.route('/')
@@ -451,6 +470,7 @@ def dashboard():
         user.email = form.email.data
         user.phone = form.phone.data
         user.address = form.address.data
+        user.bio = form.bio.data 
         db.session.commit()
         flash('Your profile has been updated!', 'success')
         return redirect(url_for('dashboard'))
@@ -554,54 +574,58 @@ def user_reviews(user_id):
                          user=user, 
                          reviews=reviews,
                          calculate_average_rating=calculate_average_rating)
-
-# Route for viewing product details
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
-    
-    # Increment view count (except when seller views their own product)
+
+    # Increment view count except seller viewing their own product
     if 'user_id' not in session or session['user_id'] != product.seller_id:
         product.view_count += 1
         db.session.commit()
-    
-    if 'user_id' in session:
-        user = User.query.get(session['user_id'])
-        
-        # If user is viewing their own product (regardless of role), show seller view
-        if user.id == product.seller_id:
-            # For auctions, include bidding information
-            if product.is_auction:
-                auction = Auction.query.filter_by(product_id=product.id).first()
-                if auction:
-                    bids = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).all()
-                    return render_template('seller_product_view.html', 
-                                         product=product,
-                                         auction=auction,
-                                         bids=bids)
-            return render_template('seller_product_view.html', product=product)
-    
-    # Regular buyer view (for everyone else)
+
+    auction = None
+    bids = []
+    highest_bid = None
+    time_remaining = None
+    is_highest_bidder = False
+
+    # Try to get auction info if auction product
     if product.is_auction:
         auction = Auction.query.filter_by(product_id=product.id).first()
         if auction:
-            time_remaining = auction.end_time - datetime.utcnow()
-            highest_bid = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).first()
-            
-            # Check if current user is the highest bidder
-            is_highest_bidder = False
-            if 'user_id' in session and highest_bid:
-                is_highest_bidder = (highest_bid.user_id == session['user_id'])
-            
-            return render_template('auction_detail.html',
-                                 product=product,
-                                 auction=auction,
-                                 time_remaining=time_remaining,
-                                 highest_bid=highest_bid,
-                                 is_highest_bidder=is_highest_bidder)
-    
+            bids = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).all()
+            highest_bid = bids[0] if bids else None
+            if auction.end_time:
+                time_remaining = auction.end_time - datetime.utcnow()
+
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+
+        # Seller view for own product
+        if user.id == product.seller_id:
+            return render_template(
+                'seller_product_view.html',
+                product=product,
+                auction=auction,
+                bids=bids
+            )
+        
+        # Buyer view for auction product
+        if product.is_auction:
+            if highest_bid and highest_bid.user_id == user.id:
+                is_highest_bidder = True
+            return render_template(
+                'auction_detail.html',
+                product=product,
+                auction=auction,
+                time_remaining=time_remaining,
+                highest_bid=highest_bid,
+                is_highest_bidder=is_highest_bidder
+            )
+
+    # For non-logged-in or non-seller, non-auction products, just render generic product view
     return render_template('product_detail.html', product=product)
-    #return render_template('product_detail.html', product=product)
+    
 
 @app.route('/api/search-suggestions')
 def search_suggestions():
@@ -652,42 +676,33 @@ def save_search():
     flash('Search saved successfully!', 'success')
     return redirect(url_for('index'))
 
-# Route for adding a new product (requires verification)
 @app.route('/product/add', methods=['GET', 'POST'])
 @verification_required
 def add_product():
-    user = User.query.get(session['user_id'])
-    if not user.can_sell():
-        flash('You need to be a seller to list products', 'danger')
-        return redirect(url_for('index'))
-    
     form = ProductForm()
+    form.category.choices = [(c.id, c.name) for c in Category.query.all()]
+    
     if form.validate_on_submit():
-        # Handle image upload (existing code)
-        image_filename = 'placeholder.png'
+        # Handle image upload
+        image_filename = 'placeholder.png'  # Default placeholder
         
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
+                # Add timestamp to filename to avoid conflicts
                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
                 image_filename = f"{timestamp}_{filename}"
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
         
-        # Get current user for location default
-        user = User.query.get(session['user_id'])
-        
-        # Create new product with additional fields
+        # Create new product
         new_product = Product(
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
             category_id=form.category.data,
-            condition=request.form.get('condition', 'Used'),  # Get from form
-            location=request.form.get('location', user.address or ''),  # Get from form or user address
             image=image_filename,
-            seller_id=session['user_id'],
-            view_count=0
+            seller_id=session['user_id']
         )
         
         db.session.add(new_product)
@@ -697,6 +712,8 @@ def add_product():
         return redirect(url_for('dashboard'))
     
     return render_template('add_product.html', form=form)
+
+
 
 # Route for editing a product (requires verification)
 @app.route('/product/edit/<int:product_id>', methods=['GET', 'POST'])
@@ -777,6 +794,197 @@ def wishlist():
     wishlist_items = WishlistItem.query.filter_by(user_id=current_user.id).all()
     return render_template('wishlist.html', items=wishlist_items)
 
+@app.route('/messages')
+@verification_required
+def messages():
+    user_id = session['user_id']
+    
+    # Get all conversations for the current user
+    conversations = Conversation.query.filter(
+        or_(
+            Conversation.user1_id == user_id,
+            Conversation.user2_id == user_id
+        )
+    ).order_by(
+        Conversation.last_updated.desc()
+    ).all()
+    
+    # Add unread counts and last message to each conversation
+    for conv in conversations:
+        conv.unread_count = Message.query.filter(
+            Message.conversation_id == conv.id,
+            Message.sender_id != user_id,
+            Message.is_read == False
+        ).count()
+        
+        conv.last_message = Message.query.filter_by(
+            conversation_id=conv.id
+        ).order_by(
+            Message.sent_at.desc()
+        ).first()
+    
+    return render_template('messages/inbox.html', conversations=conversations)
+
+@app.route('/messages/<int:conversation_id>')
+@verification_required
+def view_conversation(conversation_id):
+    conversation = Conversation.query.get_or_404(conversation_id)
+    user_id = session['user_id']
+    
+    # Verify user is part of conversation
+    if user_id not in [conversation.user1_id, conversation.user2_id]:
+        abort(403)
+    
+    # Mark messages as read
+    Message.query.filter(
+        Message.conversation_id == conversation_id,
+        Message.sender_id != user_id,
+        Message.is_read == False
+    ).update({'is_read': True})
+    db.session.commit()
+    
+    messages = Message.query.filter_by(
+        conversation_id=conversation_id
+    ).order_by(
+        Message.sent_at.asc()
+    ).all()
+    
+    other_user = conversation.get_other_user(user_id)
+    
+    return render_template('messages/conversation.html',
+                         conversation=conversation,
+                         messages=messages,
+                         other_user=other_user)
+
+@app.route('/messages/new/<int:recipient_id>', methods=['GET', 'POST'])
+@verification_required
+def new_conversation(recipient_id):
+    user_id = session['user_id']
+    recipient = User.query.get_or_404(recipient_id)
+    
+    if user_id == recipient_id:
+        flash("You can't message yourself", 'danger')
+        return redirect(url_for('messages'))
+    
+    # Check if conversation already exists
+    conversation = Conversation.query.filter(
+        or_(
+            and_(Conversation.user1_id == user_id, Conversation.user2_id == recipient_id),
+            and_(Conversation.user1_id == recipient_id, Conversation.user2_id == user_id)
+        )
+    ).first()
+    
+    if conversation:
+        return redirect(url_for('view_conversation', conversation_id=conversation.id))
+    
+    if request.method == 'POST':
+        content = request.form.get('content', '').strip()
+        if not content:
+            flash('Message cannot be empty', 'danger')
+            return render_template('messages/new.html', recipient=recipient)
+        
+        # Create new conversation
+        new_conv = Conversation(
+            user1_id=user_id,
+            user2_id=recipient_id
+        )
+        db.session.add(new_conv)
+        db.session.commit()
+        
+        # Add first message
+        new_message = Message(
+            conversation_id=new_conv.id,
+            sender_id=user_id,
+            content=content
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        
+        flash('Message sent!', 'success')
+        return redirect(url_for('view_conversation', conversation_id=new_conv.id))
+    
+    return render_template('messages/new.html', recipient=recipient)
+
+@app.route('/messages/send/<int:conversation_id>', methods=['POST'])
+@verification_required
+def send_message(conversation_id):
+    conversation = Conversation.query.get_or_404(conversation_id)
+    user_id = session['user_id']
+    
+    # Verify user is part of conversation
+    if user_id not in [conversation.user1_id, conversation.user2_id]:
+        abort(403)
+    
+    content = request.form.get('content', '').strip()
+    if not content:
+        flash('Message cannot be empty', 'danger')
+        return redirect(url_for('view_conversation', conversation_id=conversation_id))
+    
+    new_message = Message(
+        conversation_id=conversation_id,
+        sender_id=user_id,
+        content=content
+    )
+    
+    # Update conversation last_updated
+    conversation.last_updated = datetime.utcnow()
+    
+    db.session.add(new_message)
+    db.session.commit()
+    
+    return redirect(url_for('view_conversation', conversation_id=conversation_id))
+@app.route('/contact-seller/<int:product_id>', methods=['GET', 'POST'])
+@verification_required
+def contact_seller(product_id):
+    product = Product.query.get_or_404(product_id)
+    seller = product.seller
+    buyer_id = session['user_id']
+    
+    # Prevent sellers from messaging themselves
+    if buyer_id == seller.id:
+        flash("You can't message yourself", 'danger')
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # Check for existing conversation
+    conversation = Conversation.query.filter(
+        or_(
+            and_(Conversation.user1_id == buyer_id, Conversation.user2_id == seller.id),
+            and_(Conversation.user1_id == seller.id, Conversation.user2_id == buyer_id)
+        )
+    ).first()
+    
+    # If new conversation
+    if not conversation:
+        conversation = Conversation(
+            user1_id=buyer_id,
+            user2_id=seller.id
+        )
+        db.session.add(conversation)
+        db.session.commit()
+    
+    # Handle message submission
+    if request.method == 'POST':
+        content = request.form.get('content', '').strip()
+        if not content:
+            flash('Message cannot be empty', 'danger')
+        else:
+            # Create message with product reference
+            message = Message(
+                conversation_id=conversation.id,
+                sender_id=buyer_id,
+                content=f"Regarding your product: {product.title}\n\n{content}",
+                product_id=product_id
+            )
+            db.session.add(message)
+            conversation.last_updated = datetime.utcnow()
+            db.session.commit()
+            flash('Message sent to seller!', 'success')
+            return redirect(url_for('view_conversation', conversation_id=conversation.id))
+    
+    return render_template('messages/contact_seller.html',
+                         product=product,
+                         seller=seller,
+                         conversation=conversation)
 @app.route('/add_to_wishlist/<int:product_id>')
 def add_to_wishlist(product_id):
     # Check if item already in wishlist

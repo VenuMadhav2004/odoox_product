@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Rate Your Purchase{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>Rate Your Purchase</h2>
+  <p><strong>Product:</strong> {{ purchase.product.name }}</p>
+  <p><strong>Seller:</strong> {{ purchase.product.seller.username }}</p>
+
+  <form method="POST" id="ratingForm">
+    <div class="mb-3">
+      <label class="form-label">Your Rating:</label>
+      <div id="starRating" class="d-flex flex-row-reverse justify-content-start">
+        {% for i in range(5, 0, -1) %}
+        <input type="radio" name="stars" id="star{{ i }}" value="{{ i }}" required>
+        <label for="star{{ i }}" class="star">&#9733;</label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="comment" class="form-label">Your Review:</label>
+      <textarea name="comment" id="comment" class="form-control" rows="4" placeholder="Write something..." required></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">Submit Review</button>
+  </form>
+</div>
+
+<style>
+  .star {
+    font-size: 2rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  input[type="radio"] {
+    display: none;
+  }
+  .star.selected,
+  .star.hovered {
+    color: gold;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const stars = document.querySelectorAll('#starRating .star');
+    let selected = null;
+
+    stars.forEach((star, index) => {
+      const ratingValue = 5 - index;
+
+      star.addEventListener('mouseover', () => {
+        highlightStars(ratingValue);
+      });
+
+      star.addEventListener('mouseout', () => {
+        highlightStars(selected);
+      });
+
+      star.addEventListener('click', () => {
+        selected = ratingValue;
+        document.getElementById('star' + ratingValue).checked = true;
+      });
+    });
+
+    function highlightStars(count) {
+      stars.forEach((s, i) => {
+        if (5 - i <= count) {
+          s.classList.add('hovered');
+        } else {
+          s.classList.remove('hovered');
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

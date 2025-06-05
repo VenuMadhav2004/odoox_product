@@ -11,9 +11,17 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(20))
     address = db.Column(db.String(200))
+    bio = db.Column(db.Text, nullable=True)
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
-    role = db.Column(db.String(20), default='buyer')  # 'admin', 'seller', 'buyer'
+    ROLES = [
+        ('admin', 'Admin'),
+        ('seller', 'Seller'),
+        ('buyer', 'Buyer'),
+        ('both', 'Buyer/Seller')
+    ]
+    
+    role = db.Column(db.Enum(*[r[0] for r in ROLES], name='user_roles'), default='buyer')
     stripe_account_id = db.Column(db.String(100))  # For seller payments
     is_active = db.Column(db.Boolean, default=True)
     wishlist_items = db.relationship('WishlistItem', backref='user', lazy=True)
@@ -98,8 +106,10 @@ class Product(db.Model):
     is_sold = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    location = db.Column(db.String(100))
+    
     is_auction = db.Column(db.Boolean, default=False)
+    
+
     # Foreign keys
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
@@ -174,35 +184,7 @@ class Bid(db.Model):
     def __repr__(self):
         return f'<Bid {self.amount} by User {self.user_id}>'
      
-class Conversation(db.Model):
-    __tablename__ = 'conversations'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user1_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    user2_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    
-    messages = db.relationship('Message', backref='conversation', lazy=True, cascade="all, delete-orphan")
-    
-    user1 = db.relationship('User', foreign_keys=[user1_id])
-    user2 = db.relationship('User', foreign_keys=[user2_id])
-    
-    def __repr__(self):
-        return f'<Conversation {self.id} between {self.user1_id} and {self.user2_id}>'
 
-class Message(db.Model):
-    __tablename__ = 'messages'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
-    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    sent_at = db.Column(db.DateTime, default=datetime.now)
-    
-    sender = db.relationship('User', foreign_keys=[sender_id])
-    
-    def __repr__(self):
-        return f'<Message {self.id} in Conversation {self.conversation_id}>'
 class Rating(db.Model):
     __tablename__ = 'ratings'
     
@@ -257,6 +239,40 @@ class SavedSearch(db.Model):
     notify_via_email = db.Column(db.Boolean, default=True)
     
     user = db.relationship('User', backref='saved_searches')
+class Conversation(db.Model):
+    __tablename__ = 'conversations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user1_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user1 = db.relationship('User', foreign_keys=[user1_id])
+    user2 = db.relationship('User', foreign_keys=[user2_id])
+    messages = db.relationship('Message', back_populates='conversation', cascade='all, delete-orphan')
+    
+    def get_other_user(self, current_user_id):
+        return self.user2 if current_user_id == self.user1_id else self.user1
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    conversation = db.relationship('Conversation', back_populates='messages')
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    
+    @property
+    def is_recipient(self, user_id):
+        return user_id != self.sender_id
 
 class PriceAlert(db.Model):
     __tablename__ = 'price_alerts'

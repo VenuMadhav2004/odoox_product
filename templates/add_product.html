@@ -1,297 +1,444 @@
-
 {% extends "base.html" %}
 
-{% block title %}Add New Product - EcoFinds{% endblock %}
+{% block title %}Add Product - EcoFinds{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1><i class="fas fa-plus-circle"></i> Add New Product</h1>
-    <p class="mb-4">List your pre-loved items and contribute to a more sustainable future.</p>
-    
-    <form method="POST" enctype="multipart/form-data" id="productForm">
-        {{ form.hidden_tag() }}
-        
-        <div class="form-group">
-            {{ form.title.label(class="form-label") }}
-            {{ form.title(class="form-control", placeholder="Enter product title") }}
-            {% if form.title.errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.title.errors %}
-                        {{ error }}
-                    {% endfor %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>List Your Product</h4>
+                    <p class="mb-0 mt-2 opacity-75">Share your sustainable goods with the community</p>
                 </div>
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            {{ form.description.label(class="form-label") }}
-            {{ form.description(class="form-control", placeholder="Describe your product in detail", rows="4") }}
-            {% if form.description.errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.description.errors %}
-                        {{ error }}
-                    {% endfor %}
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" id="productForm">
+                        {{ form.hidden_tag() }}
+
+                        <!-- Image Upload Section -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Product Image</label>
+                            <div class="image-upload-container" tabindex="0" role="button" aria-label="Click to upload image">
+                                <div class="image-preview" id="imagePreview">
+                                    <i class="fas fa-camera fa-3x text-muted"></i>
+                                    <p class="text-muted mt-2">Click to upload image</p>
+                                </div>
+                                <input type="file" class="form-control d-none" name="image" id="imageInput" accept="image/*">
+                            </div>
+                        </div>
+
+                        <!-- Title and Price -->
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                {{ form.title.label(class="form-label fw-bold") }}
+                                {{ form.title(class="form-control form-control-lg", placeholder="What are you selling?") }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger small mt-1">{{ form.title.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.price(class="form-control form-control-lg", placeholder="0.00") }}
+                                </div>
+                                {% if form.price.errors %}
+                                    <div class="text-danger small mt-1">{{ form.price.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Category and Condition -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label fw-bold">Category</label>
+                                <select class="form-select form-select-lg" name="category" id="category" required>
+                                    <option value="">Select a category</option>
+                                    <option value="Clothing">Clothing</option>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Books">Books</option>
+                                    <option value="Furniture">Furniture</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="condition" class="form-label fw-bold">Condition</label>
+                                <select name="condition" id="condition" class="form-select form-select-lg" required>
+                                    <option value="">Select condition</option>
+                                    <option value="New">New</option>
+                                    <option value="Like New">Like New</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Fair">Fair</option>
+                                    <option value="Used">Used</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label fw-bold">Location</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="location"
+                                name="location"
+                                placeholder="City, State"
+                                value="{{ request.form.location or current_user.address or '' }}"
+                                required
+                            >
+                            <div class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Help buyers find you easily
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            {{ form.description.label(class="form-label fw-bold") }}
+                            {{ form.description(class="form-control", rows="5", placeholder="Describe your item's features, condition, and why it's great...") }}
+                            <div class="form-text">
+                                <span id="charCount">0</span>/500 characters
+                            </div>
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">{{ form.description.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Listing Type -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Listing Type</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card listing-type-card active" data-type="fixed" tabindex="0" role="button" aria-pressed="true">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-tag fa-2x text-primary mb-2"></i>
+                                            <h6>Fixed Price</h6>
+                                            <p class="small text-muted">Sell at a set price</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card listing-type-card" data-type="auction" tabindex="0" role="button" aria-pressed="false">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-gavel fa-2x text-warning mb-2"></i>
+                                            <h6>Auction</h6>
+                                            <p class="small text-muted">Let buyers bid</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Auction Settings (Initially Hidden) -->
+                        <div id="auctionSettings" class="mb-4" style="display: none;">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-gavel me-2"></i>Auction Settings</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Starting Price</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" name="starting_price" class="form-control" placeholder="1.00" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Duration</label>
+                                            <select name="duration" class="form-select">
+                                                <option value="1">1 Day</option>
+                                                <option value="3" selected>3 Days</option>
+                                                <option value="7">1 Week</option>
+                                                <option value="14">2 Weeks</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sustainability Badge -->
+                        <div class="mb-4">
+                            <div class="card border-success">
+                                <div class="card-body d-flex align-items-center">
+                                    <i class="fas fa-leaf fa-2x text-success me-3"></i>
+                                    <div>
+                                        <h6 class="text-success mb-1">Sustainable Impact</h6>
+                                        <p class="small text-muted mb-0">
+                                            By selling this item, you're contributing to a circular economy 
+                                            and reducing waste!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary me-2" id="previewBtn">
+                                    <i class="fas fa-eye me-2"></i>Preview
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-rocket me-2"></i>List Product
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-            {% endif %}
-            <div class="char-count">
-                <span id="charCount">0</span>/500 characters
             </div>
         </div>
-        
-        <div class="form-group">
-            {{ form.category.label(class="form-label") }}
-            {{ form.category(class="form-control") }}
-            {% if form.category.errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.category.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            {{ form.price.label(class="form-label") }}
-            <div class="price-input">
-                <span class="currency-symbol">$</span>
-                {{ form.price(class="form-control", placeholder="0.00") }}
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Product Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            {% if form.price.errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.price.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Product Image</label>
-            <div class="image-upload-container">
-                <div class="image-preview" id="imagePreview">
-                    <img src="/static/images/uploads/placeholder.png" alt="Image Preview" id="previewImg">
-                    <div class="placeholder-text">
-                        <i class="fas fa-image"></i>
-                        <p>Preview</p>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <img id="previewImage" src="" class="img-fluid rounded" alt="Product preview">
+                    </div>
+                    <div class="col-md-6">
+                        <h4 id="previewTitle"></h4>
+                        <h5 class="text-primary" id="previewPrice"></h5>
+                        <p><strong>Category:</strong> <span id="previewCategory"></span></p>
+                        <p><strong>Condition:</strong> <span id="previewCondition"></span></p>
+                        <p><strong>Location:</strong> <span id="previewLocation"></span></p>
+                        <p id="previewDescription"></p>
                     </div>
                 </div>
-                <div class="upload-controls">
-                    <label for="image" class="custom-file-upload">
-                        <i class="fas fa-upload"></i> Choose Image
-                    </label>
-                    <input type="file" name="image" id="image" class="file-input" accept="image/*">
-                    <p class="file-name" id="fileName">No file selected</p>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('productForm').submit()">
+                    <i class="fas fa-rocket me-2"></i>List Product
+                </button>
             </div>
         </div>
-        
-        <div class="form-group submit-section">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> List Product
-            </button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
-                <i class="fas fa-times"></i> Cancel
-            </a>
-        </div>
-    </form>
+    </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // Image preview functionality
-    const imageInput = document.getElementById('image');
-    const previewImg = document.getElementById('previewImg');
-    const imagePreview = document.getElementById('imagePreview');
-    const fileNameDisplay = document.getElementById('fileName');
-    
-    imageInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                previewImg.src = e.target.result;
-                imagePreview.classList.add('has-image');
-                fileNameDisplay.textContent = file.name;
-            }
-            
-            reader.readAsDataURL(file);
-        } else {
-            previewImg.src = '/static/images/uploads/placeholder.png';
-            imagePreview.classList.remove('has-image');
-            fileNameDisplay.textContent = 'No file selected';
-        }
-    });
-    
-    // Character counter for description
-    const descriptionTextarea = document.querySelector('textarea[name="description"]');
-    const charCount = document.getElementById('charCount');
-    
-    descriptionTextarea.addEventListener('input', function() {
-        const currentLength = this.value.length;
-        charCount.textContent = currentLength;
-        
-        if (currentLength > 500) {
-            charCount.classList.add('text-danger');
-        } else {
-            charCount.classList.remove('text-danger');
-        }
-    });
-    
-    // Form validation
-    const productForm = document.getElementById('productForm');
-    
-    productForm.addEventListener('submit', function(e) {
-        const title = document.querySelector('input[name="title"]');
-        const price = document.querySelector('input[name="price"]');
-        
-        let valid = true;
-        
-        if (!title.value.trim()) {
-            highlightError(title);
-            valid = false;
-        }
-        
-        if (!price.value || isNaN(parseFloat(price.value)) || parseFloat(price.value) <= 0) {
-            highlightError(price);
-            valid = false;
-        }
-        
-        if (!valid) {
-            e.preventDefault();
-            window.scrollTo(0, 0);
-        }
-    });
-    
-    function highlightError(element) {
-        element.classList.add('error-field');
-        element.addEventListener('input', function() {
-            element.classList.remove('error-field');
-        }, { once: true });
-    }
-</script>
 
 <style>
-    .char-count {
-        font-size: 0.85rem;
-        color: #666;
-        text-align: right;
-        margin-top: 0.25rem;
+.image-upload-container {
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.image-upload-container:hover {
+    border-color: var(--primary-color);
+    background: rgba(45, 106, 79, 0.05);
+}
+
+.image-preview {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+}
+
+.image-preview.has-image {
+    background-color: #f8f9fa;
+}
+
+.listing-type-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid #dee2e6;
+}
+
+.listing-type-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.listing-type-card.active {
+    border-color: var(--primary-color);
+    background-color: rgba(45, 106, 79, 0.05);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+}
+
+#auctionSettings {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
     }
-    
-    .text-danger {
-        color: var(--danger) !important;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
-    
-    .price-input {
-        position: relative;
-    }
-    
-    .currency-symbol {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #666;
-    }
-    
-    input[name="price"] {
-        padding-left: 25px;
-    }
-    
-    .image-upload-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1.5rem;
-        margin-top: 0.5rem;
-    }
-    
-    .image-preview {
-        width: 200px;
-        height: 200px;
-        border: 2px dashed var(--border-color);
-        border-radius: 8px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        background-color: #f5f5f5;
-    }
-    
-    .image-preview img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        z-index: 1;
-    }
-    
-    .image-preview.has-image .placeholder-text {
-        display: none;
-    }
-    
-    .placeholder-text {
-        text-align: center;
-        color: #999;
-    }
-    
-    .placeholder-text i {
-        font-size: 2.5rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .upload-controls {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    
-    .custom-file-upload {
-        display: inline-block;
-        padding: 0.75rem 1.5rem;
-        background-color: var(--info);
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-    
-    .custom-file-upload:hover {
-        background-color: #0b7dda;
-    }
-    
-    .file-input {
-        display: none;
-    }
-    
-    .file-name {
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: #666;
-    }
-    
-    .submit-section {
-        margin-top: 2rem;
-        display: flex;
-        gap: 1rem;
-    }
-    
-    .error-field {
-        border-color: var(--danger) !important;
-        box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2) !important;
-    }
-    
-    @media (max-width: 576px) {
-        .image-upload-container {
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .image-preview {
-            width: 100%;
-            max-width: 300px;
-        }
-    }
+}
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Image upload functionality
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const imageUploadContainer = document.querySelector('.image-upload-container');
+
+    imageUploadContainer.setAttribute('role', 'button');
+    imageUploadContainer.setAttribute('tabindex', '0');
+    imageUploadContainer.setAttribute('aria-label', 'Click to upload image');
+
+    imageUploadContainer.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    imageUploadContainer.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            imageInput.click();
+        }
+    });
+
+    imageInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                alert('Image size must be under 2MB');
+                imageInput.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imagePreview.style.backgroundImage = `url(${e.target.result})`;
+                imagePreview.innerHTML = '';
+                imagePreview.classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Character count
+    const descriptionField = document.querySelector('textarea[name="description"]');
+    const charCount = document.getElementById('charCount');
+
+    descriptionField.addEventListener('input', function () {
+        charCount.textContent = this.value.length;
+        if (this.value.length > 500) {
+            charCount.style.color = '#dc3545';
+        } else {
+            charCount.style.color = '#6c757d';
+        }
+    });
+
+    // Listing type selection
+    const listingTypeCards = document.querySelectorAll('.listing-type-card');
+    const auctionSettings = document.getElementById('auctionSettings');
+    const priceField = document.querySelector('input[name="price"]');
+
+    listingTypeCards.forEach(card => {
+        card.addEventListener('click', function () {
+            listingTypeCards.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+
+            const type = this.getAttribute('data-type');
+            if (type === 'auction') {
+                auctionSettings.style.display = 'block';
+                priceField.value = '0';
+                priceField.readOnly = true;
+            } else {
+                auctionSettings.style.display = 'none';
+                priceField.readOnly = false;
+            }
+        });
+    });
+
+    // Preview functionality
+    const previewBtn = document.getElementById('previewBtn');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+
+    previewBtn.addEventListener('click', function () {
+        const title = document.querySelector('input[name="title"]').value.trim();
+        const price = document.querySelector('input[name="price"]').value.trim();
+        const description = document.querySelector('textarea[name="description"]').value.trim();
+        const categorySelect = document.querySelector('select[name="category"]');
+        const conditionSelect = document.querySelector('select[name="condition"]');
+        const location = document.querySelector('input[name="location"]').value.trim();
+        const category = categorySelect.options[categorySelect.selectedIndex]?.text || 'N/A';
+        const condition = conditionSelect.options[conditionSelect.selectedIndex]?.text || 'N/A';
+        const isAuction = document.querySelector('.listing-type-card.active').getAttribute('data-type') === 'auction';
+        const startingPrice = document.querySelector('input[name="starting_price"]')?.value;
+
+        if (!title || (!price && !isAuction) || !category || !condition) {
+            alert('Please fill out all required fields before previewing.');
+            return;
+        }
+
+        document.getElementById('previewTitle').textContent = title;
+        document.getElementById('previewPrice').textContent = isAuction 
+            ? `Starting at $${startingPrice || '0.00'} (Auction)` 
+            : `$${price || '0.00'}`;
+        document.getElementById('previewDescription').textContent = description || 'No description provided';
+        document.getElementById('previewCategory').textContent = category;
+        document.getElementById('previewCondition').textContent = condition;
+        document.getElementById('previewLocation').textContent = location || 'Not specified';
+
+        const file = imageInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('previewImage').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            document.getElementById('previewImage').src = '';
+        }
+
+        previewModal.show();
+    });
+
+    // Warn before leaving unsaved form
+    let isFormDirty = false;
+    const productForm = document.getElementById('productForm');
+    productForm.addEventListener('input', () => {
+        isFormDirty = true;
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (isFormDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // Trim inputs before submit
+    productForm.addEventListener('submit', function () {
+        const inputs = this.querySelectorAll('input[type="text"], textarea');
+        inputs.forEach(input => {
+            input.value = input.value.trim();
+        });
+        isFormDirty = false;
+    });
+});
+</script>
 {% endblock %}

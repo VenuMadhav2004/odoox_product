@@ -1,29 +1,129 @@
 {% extends "base.html" %}
 
+{% block extra_styles %}
+<style>
+  .seller-product-view {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem 2rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .seller-stats p {
+    font-size: 1.1rem;
+    margin: 0.5rem 0;
+  }
+  .auction-info {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+  }
+  .seller-actions {
+    display: flex;
+    gap: 1rem;
+  }
+  .btn {
+    padding: 0.5rem 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="seller-product-view">
-    <h2>Your Product: {{ product.title }}</h2>
-    
-    <!-- Show seller-specific information -->
-    <div class="seller-stats">
-        <p>Views: {{ product.view_count }}</p>
-        <p>Status: {% if product.is_sold %}Sold{% else %}Available{% endif %}</p>
-    </div>
-    
-    <!-- Show bids if it's an auction -->
-    {% if product.is_auction %}
-    <div class="auction-info">
-        <h3>Auction Details</h3>
-        <!-- Show bids, time remaining, etc. -->
-    </div>
+  <h2>Your Product: {{ product.title }}</h2>
+
+  <div class="seller-stats">
+    <p><strong>Views:</strong> {{ product.view_count }}</p>
+    <p><strong>Status:</strong> 
+      {% if product.is_sold %}
+        <span style="color: #d9534f;">Sold</span>
+      {% else %}
+        <span style="color: #28a745;">Available</span>
+      {% endif %}
+    </p>
+  </div>
+
+  {% if product.is_auction %}
+  <div class="auction-info">
+    <h3>Auction Details</h3>
+    {% if bids %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Bidder</th>
+          <th>Amount</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bid in bids %}
+        <tr>
+          <td>{{ bid.user.username }}</td>
+          <td>${{ "%.2f"|format(bid.amount) }}</td>
+          <td>{{ bid.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No bids placed yet.</p>
     {% endif %}
-    
-    <!-- Edit/Delete options -->
-    <div class="seller-actions">
-        <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn">Edit</a>
-        <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST">
-            <button type="submit" class="btn btn-danger">Delete</button>
-        </form>
-    </div>
+
+    <!-- Auction countdown timer -->
+    <p><strong>Time remaining: </strong><span id="auction-timer">Loading...</span></p>
+  </div>
+  {% endif %}
+
+  <div class="seller-actions">
+    <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-primary">Edit</a>
+
+    <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST" onsubmit="return confirmDelete()">
+      {{ csrf_token() }}
+      <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+  </div>
 </div>
+
+<script>
+// Confirmation before delete
+function confirmDelete() {
+  return confirm('Are you sure you want to delete this product?');
+}
+
+// Auction countdown timer (requires auction_end_time from server in ISO format)
+{% if product.is_auction and auction and auction.end_time %}
+const endTime = new Date("{{ auction.end_time.isoformat() }}").getTime();
+const timerEl = document.getElementById('auction-timer');
+
+function updateTimer() {
+  const now = new Date().getTime();
+  const distance = endTime - now;
+
+  if (distance < 0) {
+    timerEl.innerText = 'Auction ended';
+    clearInterval(interval);
+    return;
+  }
+
+  const days = Math.floor(distance / (1000*60*60*24));
+  const hours = Math.floor((distance % (1000*60*60*24)) / (1000*60*60));
+  const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+  const seconds = Math.floor((distance % (1000*60)) / 1000);
+
+  timerEl.innerText = 
+    (days > 0 ? days + 'd ' : '') +
+    hours + 'h ' +
+    minutes + 'm ' +
+    seconds + 's';
+}
+
+updateTimer();
+const interval = setInterval(updateTimer, 1000);
+{% endif %}
+</script>
 {% endblock %}
