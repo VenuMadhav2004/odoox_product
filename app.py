@@ -680,38 +680,43 @@ def save_search():
 @verification_required
 def add_product():
     form = ProductForm()
-    form.category.choices = [(c.id, c.name) for c in Category.query.all()]
+    
+    # Example category choices — you can fetch these dynamically from DB if you want
+    form.category.choices = [
+        (1, 'Clothing'),
+        (2, 'Electronics'),
+        (3, 'Books'),
+        (4, 'Furniture'),
+        (5, 'Others')
+    ]
     
     if form.validate_on_submit():
-        # Handle image upload
-        image_filename = 'placeholder.png'  # Default placeholder
-        
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                # Add timestamp to filename to avoid conflicts
-                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-                image_filename = f"{timestamp}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
-        
-        # Create new product
-        new_product = Product(
+        product = Product(
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
             category_id=form.category.data,
-            image=image_filename,
-            seller_id=session['user_id']
+            condition=form.condition.data,
+            location=form.location.data,
         )
         
-        db.session.add(new_product)
+        # Handle image upload
+        if form.image.data:
+            image_file = form.image.data
+            filename = secure_filename(image_file.filename)
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image_file.save(image_path)
+            product.image = filename
+        
+        db.session.add(product)
         db.session.commit()
         
         flash('Product listed successfully!', 'success')
         return redirect(url_for('dashboard'))
     
     return render_template('add_product.html', form=form)
+
+
 
 
 

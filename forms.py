@@ -83,17 +83,28 @@ class UserProfileForm(FlaskForm):
 class ProductForm(FlaskForm):
     title = StringField('Product Title', validators=[
         DataRequired(),
-        Length(min=3, max=100, message='Title must be between 3 and 100 characters')
+        Length(min=3, max=100)
     ])
     description = TextAreaField('Description', validators=[
         DataRequired(),
-        Length(min=10, message='Description must be at least 10 characters long')
+        Length(min=10)
     ])
     price = FloatField('Price ($)', validators=[
         DataRequired(),
-        NumberRange(min=0.01, message='Price must be greater than 0')
+        NumberRange(min=0.01)
     ])
-    category = SelectField('Category', coerce=int, validators=[
-        DataRequired()
+    
+    category = SelectField('Category', coerce=int, validators=[Optional()], choices=[])
+    
+    condition = SelectField('Condition', choices=[
+        ('new', 'New'),
+        ('used', 'Used'),
+        ('refurbished', 'Refurbished')
+    ], validators=[DataRequired()])
+    
+    location = StringField('Location', validators=[DataRequired()])
+    
+    image = FileField('Product Image', validators=[
+        FileAllowed(ALLOWED_EXTENSIONS, 'Only image files are allowed!')
     ])
-    image = FileField('Product Image')
+    submit = SubmitField('Submit Product')

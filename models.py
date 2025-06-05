@@ -106,9 +106,9 @@ class Product(db.Model):
     is_sold = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
+    location = db.Column(db.String(100))
     is_auction = db.Column(db.Boolean, default=False)
-    
+    condition = db.Column(db.String(50))  # Add this
 
     # Foreign keys
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
