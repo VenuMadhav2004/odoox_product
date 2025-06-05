@@ -4,428 +4,477 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EcoFinds - Sustainable Marketplace{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary-color: #4caf50;
-            --primary-dark: #2e7d32;
-            --primary-light: #80e27e;
-            --secondary-color: #ffc107;
-            --text-color: #333333;
-            --light-text: #ffffff;
-            --light-bg: #f9f9f9;
-            --border-color: #e0e0e0;
-            --danger: #f44336;
-            --success: #4caf50;
-            --info: #2196f3;
-            --warning: #ff9800;
+            --primary-color: #28a745;
+            --primary-dark: #1e7e34;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --gradient-primary: linear-gradient(135deg, #28a745, #20c997);
+            --gradient-secondary: linear-gradient(135deg, #6c757d, #495057);
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background-color: var(--light-bg);
-            color: var(--text-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header */
-        header {
-            background-color: var(--primary-color);
-            color: var(--light-text);
-            padding: 0.5rem 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        .logo {
-            font-size: 1.8rem;
-            font-weight: bold;
-            text-decoration: none;
-            color: var(--light-text);
-            display: flex;
-            align-items: center;
-        }
-
-        .logo i {
-            margin-right: 0.5rem;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-left: 1.5rem;
-        }
-
-        .nav-links a {
-            color: var(--light-text);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .nav-links a:hover {
-            color: var(--secondary-color);
-        }
-
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -5px;
-            left: 0;
-            background-color: var(--secondary-color);
-            transition: width 0.3s ease;
-        }
-
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        .cart-icon {
-            position: relative;
-        }
-
-        .cart-count {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background-color: var(--secondary-color);
-            color: var(--text-color);
-            border-radius: 50%;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
-
-        .hamburger {
-            display: none;
-            cursor: pointer;
-            flex-direction: column;
-            justify-content: space-between;
-            width: 30px;
-            height: 21px;
-        }
-        
-        .hamburger span {
-            height: 3px;
-            width: 100%;
-            background-color: var(--light-text);
-            border-radius: 10px;
-        }
-
-        /* Main Content */
-        main {
-            flex: 1;
-            padding: 2rem 1rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .container {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
             background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 2rem;
-            margin-bottom: 2rem;
         }
 
-        h1, h2, h3, h4, h5, h6 {
-            color: var(--primary-dark);
-            margin-bottom: 1rem;
-        }
-
-        /* Forms */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 500;
-            text-align: center;
-            text-decoration: none;
-            cursor: pointer;
+        /* Navigation Styles */
+        .navbar {
+            background: var(--gradient-primary) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--box-shadow);
             transition: all 0.3s ease;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+            text-decoration: none;
+        }
+
+        .navbar-brand:hover {
+            color: #f8f9fa !important;
+            transform: scale(1.05);
+        }
+
+        .navbar-nav .nav-link {
+            color: white !important;
+            font-weight: 500;
+            margin: 0 5px;
+            padding: 8px 16px !important;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .navbar-toggler {
+            border: none;
+            color: white;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        /* Button Styles */
+        .btn {
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 10px 20px;
         }
 
         .btn-primary {
-            background-color: var(--primary-color);
-            color: var(--light-text);
+            background: var(--gradient-primary);
+            color: white;
         }
 
         .btn-primary:hover {
-            background-color: var(--primary-dark);
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--box-shadow-lg);
         }
 
-        .btn-secondary {
-            background-color: var(--secondary-color);
-            color: var(--text-color);
+        .btn-outline-primary {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
         }
 
-        .btn-secondary:hover {
-            background-color: #e0a800;
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--gradient-primary);
         }
 
         .btn-danger {
-            background-color: var(--danger);
-            color: var(--light-text);
+            background: linear-gradient(135deg, #dc3545, #c82333);
         }
 
-        .btn-danger:hover {
-            background-color: #d32f2f;
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #212529;
         }
 
-        .btn-sm {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.875rem;
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
         }
 
-        /* Flash Messages */
-        .flash-messages {
-            margin-bottom: 1.5rem;
+        /* Card Styles */
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
         }
 
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow-lg);
+        }
+
+        .card-header {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        /* Form Styles */
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--dark-color);
+            margin-bottom: 8px;
+        }
+
+        /* Alert Styles */
         .alert {
-            padding: 0.75rem 1.25rem;
-            margin-bottom: 1rem;
-            border: 1px solid transparent;
-            border-radius: 4px;
+            border: none;
+            border-radius: var(--border-radius);
+            border-left: 4px solid;
+            animation: slideInRight 0.5s ease;
         }
 
         .alert-success {
             background-color: #d4edda;
-            border-color: #c3e6cb;
+            border-left-color: var(--success-color);
             color: #155724;
         }
 
         .alert-danger {
             background-color: #f8d7da;
-            border-color: #f5c6cb;
+            border-left-color: var(--danger-color);
             color: #721c24;
         }
 
         .alert-warning {
             background-color: #fff3cd;
-            border-color: #ffeeba;
+            border-left-color: var(--warning-color);
             color: #856404;
         }
 
         .alert-info {
             background-color: #d1ecf1;
-            border-color: #bee5eb;
+            border-left-color: var(--info-color);
             color: #0c5460;
         }
 
-        /* Footer */
-        footer {
-            background-color: var(--primary-dark);
-            color: var(--light-text);
-            padding: 2rem 0;
-            margin-top: auto;
+        /* Animation Classes */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        .footer-section {
-            flex: 1;
-            min-width: 200px;
-            margin-bottom: 1.5rem;
+        @keyframes slideInUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
-        .footer-section h3 {
-            color: var(--light-text);
-            margin-bottom: 1rem;
-            position: relative;
-            padding-bottom: 0.5rem;
+        .fade-in {
+            animation: fadeIn 0.6s ease;
         }
 
-        .footer-section h3::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 50px;
-            height: 2px;
-            background-color: var(--secondary-color);
+        .slide-in-up {
+            animation: slideInUp 0.6s ease;
         }
 
-        .footer-links {
-            list-style: none;
+        /* Footer Styles */
+        .footer {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: 60px;
         }
 
-        .footer-links li {
-            margin-bottom: 0.5rem;
+        .footer h5 {
+            color: white;
+            margin-bottom: 20px;
         }
 
-        .footer-links a {
-            color: #b9d9bb;
+        .footer a {
+            color: #adb5bd;
             text-decoration: none;
             transition: color 0.3s ease;
         }
 
-        .footer-links a:hover {
-            color: var(--light-text);
+        .footer a:hover {
+            color: white;
         }
 
-        .social-links {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
+        /* Utility Classes */
+        .text-gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .social-links a {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            color: var(--light-text);
-            text-decoration: none;
-            transition: all 0.3s ease;
+        .bg-gradient-primary {
+            background: var(--gradient-primary);
         }
 
-        .social-links a:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-3px);
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .copyright {
-            text-align: center;
-            padding-top: 1.5rem;
-            margin-top: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            width: 100%;
+        /* Loading Spinner */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
         }
 
-        /* Responsive */
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .hamburger {
-                display: flex;
+            .navbar-brand {
+                font-size: 1.2rem;
             }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .card {
+                margin-bottom: 20px;
+            }
+        }
 
-            .nav-links {
-                position: absolute;
-                top: 60px;
-                left: 0;
-                right: 0;
-                background-color: var(--primary-color);
-                display: none;
-                flex-direction: column;
-                width: 100%;
-                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-                padding: 1rem 0;
-                z-index: 1000;
-            }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
 
-            .nav-links.active {
-                display: flex;
-            }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
 
-            .nav-links li {
-                margin: 0.5rem 1rem;
-            }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
 
-            .footer-section {
-                flex: 100%;
-            }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* New styles for dual-role interface */
+        .role-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        
+        .buyer-badge {
+            background-color: #17a2b8;
+            color: white;
+        }
+        
+        .seller-badge {
+            background-color: #6f42c1;
+            color: white;
+        }
+        
+        .admin-badge {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .nav-divider {
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            height: 30px;
+            margin: 0 10px;
         }
     </style>
+
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="{{ url_for('index') }}" class="logo">
-                <i class="fas fa-leaf"></i> EcoFinds
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-leaf me-2"></i>EcoFinds
             </a>
-            <div class="hamburger" id="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <ul class="nav-links" id="navLinks">
-                <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
-                {% if 'user_id' in session %}
-                    <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-user"></i> Dashboard</a></li>
-                    <li><a href="{{ url_for('purchases') }}"><i class="fas fa-shopping-bag"></i> My Purchases</a></li>
-                    <li>
-                        <a href="{{ url_for('cart') }}" class="cart-icon">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span class="cart-count" id="cartCount">0</span>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
                         </a>
                     </li>
-                    <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                {% else %}
-                    <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                    <li><a href="{{ url_for('signup') }}"><i class="fas fa-user-plus"></i> Sign Up</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auctions') }}">
+                            <i class="fas fa-gavel me-1"></i>Auctions
+                        </a>
+                    </li>
+                    {% if current_user and current_user.can_sell() %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('add_product') }}">
+                            <i class="fas fa-plus me-1"></i>Sell Item
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user %}
+                        {% if current_user.can_buy() %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('cart') }}">
+                                <i class="fas fa-shopping-cart me-1"></i>Cart
+                                <span class="badge bg-light text-dark ms-1" id="cart-count">
+                                    {{ current_user.cart_items|length if current_user.cart_items else 0 }}
+                                </span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <span class="nav-divider d-none d-lg-block"></span>
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                                {% if current_user.role == 'both' %}
+                                    <span class="role-badge buyer-badge">Buyer</span>
+                                    <span class="role-badge seller-badge">Seller</span>
+                                {% elif current_user.role == 'buyer' %}
+                                    <span class="role-badge buyer-badge">Buyer</span>
+                                {% elif current_user.role == 'seller' %}
+                                    <span class="role-badge seller-badge">Seller</span>
+                                {% elif current_user.is_admin() %}
+                                    <span class="role-badge admin-badge">Admin</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a></li>
+                                
+                                {% if current_user.can_buy() %}
+                                <li><a class="dropdown-item" href="{{ url_for('purchases') }}">
+                                    <i class="fas fa-shopping-bag me-2"></i>My Purchases
+                                </a></li>
+                                {% endif %}
+                                
+                                {% if current_user.can_sell() %}
+                                <li><a class="dropdown-item" href="{{ url_for('seller_dashboard') }}">
+                                    <i class="fas fa-store me-2"></i>Seller Dashboard
+                                </a></li>
+                                {% endif %}
+                                
+                                {% if current_user.is_admin() %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-cog me-2"></i>Admin Panel
+                                </a></li>
+                                {% endif %}
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('signup') }}">
+                                <i class="fas fa-user-plus me-1"></i>Sign Up
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <main>
-        <div class="flash-messages">
+    <!-- Main Content -->
+    <main style="padding-top: 80px; min-height: calc(100vh - 200px);">
+        <!-- Flash Messages -->
+        <div class="container mt-3">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                             {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -435,87 +484,184 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>About EcoFinds</h3>
-                <p>EcoFinds is a sustainable marketplace where you can buy and sell pre-loved items, reducing waste and promoting eco-friendly lifestyles.</p>
-                <div class="social-links">
-                    <a href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-pinterest"></i></a>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5><i class="fas fa-leaf me-2"></i>EcoFinds</h5>
+                    <p>Your sustainable marketplace for buying and selling eco-friendly products. Join our community of environmentally conscious consumers.</p>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}">Home</a></li>
+                        <li><a href="{{ url_for('auctions') }}">Auctions</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+    <h5>Categories</h5>
+    <ul class="list-unstyled">
+        {% for category in categories[:4] %}
+        <li><a href="{{ url_for('index', category=category.id) }}">{{ category.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+                <div class="col-md-2 mb-4">
+                    <h5>Support</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#help">Help Center</a></li>
+                        <li><a href="#safety">Safety</a></li>
+                        <li><a href="#terms">Terms</a></li>
+                        <li><a href="#privacy">Privacy</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h5>Follow Us</h5>
+                    <div class="d-flex">
+                        <a href="#" class="me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
                 </div>
             </div>
-            <div class="footer-section">
-                <h3>Quick Links</h3>
-                <ul class="footer-links">
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">How It Works</a></li>
-                    <li><a href="#">Contact</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>Categories</h3>
-                <ul class="footer-links">
-                    <li><a href="{{ url_for('index', category=1) }}">Clothing</a></li>
-                    <li><a href="{{ url_for('index', category=2) }}">Electronics</a></li>
-                    <li><a href="{{ url_for('index', category=3) }}">Furniture</a></li>
-                    <li><a href="{{ url_for('index', category=4) }}">Books</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>Contact Us</h3>
-                <p><i class="fas fa-map-marker-alt"></i> 123 Eco Street, Green City</p>
-                <p><i class="fas fa-envelope"></i> info@ecofinds.com</p>
-                <p><i class="fas fa-phone"></i> +1 234 567 8900</p>
-            </div>
-            <div class="copyright">
-                &copy; 2025 EcoFinds. All rights reserved.
+            <hr class="my-4">
+            <div class="text-center">
+                <p>&copy; 2025 EcoFinds. All rights reserved. Made with <i class="fas fa-heart text-success"></i> for a sustainable future.</p>
             </div>
         </div>
     </footer>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
     <script>
-    // Toggle mobile menu
-    document.getElementById('hamburger').addEventListener('click', function() {
-        document.getElementById('navLinks').classList.toggle('active');
-    });
-
-    // Update cart count (only if user is logged in)
-    function updateCartCount() {
-        {% if 'user_id' in session %}
-        fetch('/cart')
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const cartItems = doc.querySelectorAll('.cart-item');
-                document.getElementById('cartCount').textContent = cartItems.length || '0';
-            })
-            .catch(error => console.error('Error updating cart count:', error));
-        {% endif %}
-    }
-
-    // Auto-close flash messages after 5 seconds
-    document.addEventListener('DOMContentLoaded', function() {
-        const flashMessages = document.querySelectorAll('.alert');
-        flashMessages.forEach(message => {
-            setTimeout(() => {
-                message.style.opacity = '0';
-                message.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => {
-                    message.remove();
-                }, 500);
-            }, 5000);
+        // Global JavaScript functions and utilities
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
         });
 
-        // Initialize cart count
-        updateCartCount();
-    });
-</script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
 
-{% block scripts %}{% endblock %}
+        // Add loading states to forms
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+                    submitBtn.disabled = true;
+                    
+                    // Re-enable after 10 seconds as fallback
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 10000);
+                }
+            });
+        });
+
+        // Utility function for making AJAX requests
+        function makeRequest(url, options = {}) {
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            };
+            
+            return fetch(url, { ...defaultOptions, ...options })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    console.error('Request failed:', error);
+                    throw error;
+                });
+        }
+
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        // Initialize popovers
+        document.addEventListener('DOMContentLoaded', function() {
+            const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            popoverTriggerList.map(function(popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
+            });
+        });
+
+        // Add animation classes to elements as they come into view
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements with animation classes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.card, .alert, .product-item').forEach(el => {
+                observer.observe(el);
+            });
+        });
+
+        // Update cart count in real-time
+        // Update cart count in real-time
+function updateCartCount() {
+    fetch('{{ url_for("api_cart_count") }}')
+        .then(response => response.json())
+        .then(data => {
+            const cartCount = document.getElementById('cart-count');
+            if (cartCount) {
+                cartCount.textContent = data.count;
+            }
+        })
+        .catch(error => console.error('Error updating cart count:', error));
+}
+
+        // Call updateCartCount when page loads and every 30 seconds
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+        setInterval(updateCartCount, 30000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

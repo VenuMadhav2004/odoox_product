@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="seller-product-view">
+    <h2>Your Product: {{ product.title }}</h2>
+    
+    <!-- Show seller-specific information -->
+    <div class="seller-stats">
+        <p>Views: {{ product.view_count }}</p>
+        <p>Status: {% if product.is_sold %}Sold{% else %}Available{% endif %}</p>
+    </div>
+    
+    <!-- Show bids if it's an auction -->
+    {% if product.is_auction %}
+    <div class="auction-info">
+        <h3>Auction Details</h3>
+        <!-- Show bids, time remaining, etc. -->
+    </div>
+    {% endif %}
+    
+    <!-- Edit/Delete options -->
+    <div class="seller-actions">
+        <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn">Edit</a>
+        <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST">
+            <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

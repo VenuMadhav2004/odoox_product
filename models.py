@@ -1,5 +1,6 @@
 from extensions import db  # Import the single shared instance
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -10,8 +11,13 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(20))
     address = db.Column(db.String(200))
-    is_verified = db.Column(db.Boolean, default=False)  # Email verification status
+    is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
+    role = db.Column(db.String(20), default='buyer')  # 'admin', 'seller', 'buyer'
+    stripe_account_id = db.Column(db.String(100))  # For seller payments
+    is_active = db.Column(db.Boolean, default=True)
+    wishlist_items = db.relationship('WishlistItem', backref='user', lazy=True)
+
     
     # Relationships
     products = db.relationship('Product', backref='seller', lazy=True)
@@ -19,8 +25,33 @@ class User(db.Model):
     purchases = db.relationship('Purchase', backref='buyer', lazy=True)
     otp_records = db.relationship('OTPRecord', backref='user', lazy=True, cascade="all, delete-orphan")
     
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    def is_seller(self):
+        return self.role == 'seller'
+    
+    def is_buyer(self):
+        return self.role == 'buyer'
+    
+    def can_sell(self):
+        return self.role in ['seller', 'both']
+    
+    def can_buy(self):
+        return self.role in ['buyer', 'both']
+    
+    def can_moderate(self):
+        return self.is_admin()
+    def set_password(self, password):
+        """Create hashed password."""
+        self.password = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """Check hashed password."""
+        return check_password_hash(self.password, password)
+    
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<User {self.username} ({self.role})>'
 
 
 class OTPRecord(db.Model):
@@ -67,7 +98,8 @@ class Product(db.Model):
     is_sold = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
+    location = db.Column(db.String(100))
+    is_auction = db.Column(db.Boolean, default=False)
     # Foreign keys
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
@@ -107,3 +139,156 @@ class Purchase(db.Model):
     
     def __repr__(self):
         return f'<Purchase {self.id}>'
+    
+class Auction(db.Model):
+    __tablename__ = 'auctions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, unique=True)
+    min_bid = db.Column(db.Float, nullable=False)
+    reserve_price = db.Column(db.Float)
+    start_time = db.Column(db.DateTime, default=datetime.now)
+    end_time = db.Column(db.DateTime, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    #product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    
+    
+    # Relationships
+    product = db.relationship('Product', backref='auction', uselist=False)
+    bids = db.relationship('Bid', backref='auction', lazy=True, cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f'<Auction for Product {self.product_id}>'
+
+class Bid(db.Model):
+    __tablename__ = 'bids'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    auction_id = db.Column(db.Integer, db.ForeignKey('auctions.id'), nullable=False)  # was 'auction.id'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # was 'user.id'
+    amount = db.Column(db.Float, nullable=False)
+    bid_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='user_bids') 
+    
+    def __repr__(self):
+        return f'<Bid {self.amount} by User {self.user_id}>'
+     
+class Conversation(db.Model):
+    __tablename__ = 'conversations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user1_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    messages = db.relationship('Message', backref='conversation', lazy=True, cascade="all, delete-orphan")
+    
+    user1 = db.relationship('User', foreign_keys=[user1_id])
+    user2 = db.relationship('User', foreign_keys=[user2_id])
+    
+    def __repr__(self):
+        return f'<Conversation {self.id} between {self.user1_id} and {self.user2_id}>'
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    sent_at = db.Column(db.DateTime, default=datetime.now)
+    
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    
+    def __repr__(self):
+        return f'<Message {self.id} in Conversation {self.conversation_id}>'
+class Rating(db.Model):
+    __tablename__ = 'ratings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    rater_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    ratee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
+    purchase_id = db.Column(db.Integer, db.ForeignKey('purchases.id'), nullable=False)
+    stars = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    is_approved = db.Column(db.Boolean, default=True)
+    
+    # Relationships - define backrefs only here
+    rater = db.relationship('User', foreign_keys=[rater_id], 
+                           backref=db.backref('given_ratings', lazy='dynamic'))
+    ratee = db.relationship('User', foreign_keys=[ratee_id], 
+                          backref=db.backref('received_ratings', lazy='dynamic'))
+    product = db.relationship('Product', backref='product_ratings')
+    purchase = db.relationship('Purchase', backref='purchase_rating')
+
+    def __repr__(self):
+        return f'<Rating {self.stars} stars by User {self.rater_id}>'
+        #return f'<Rating {self.stars} stars by User {self.rater_id}>'
+
+class Dispute(db.Model):
+    __tablename__ = 'disputes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    purchase_id = db.Column(db.Integer, db.ForeignKey('purchases.id'), nullable=False)
+    complainant_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    accused_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), default='open')  # open, resolved, closed
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # Admin actions, comments, evidence could be stored in separate tables or JSON
+    
+    complainant = db.relationship('User', foreign_keys=[complainant_id])
+    accused = db.relationship('User', foreign_keys=[accused_id])
+    purchase = db.relationship('Purchase', backref='disputes')
+
+class SavedSearch(db.Model):
+    __tablename__ = 'saved_searches'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    query = db.Column(db.String(200), nullable=False)
+    filters = db.Column(db.JSON)  # store filters as JSON
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    notify_via_email = db.Column(db.Boolean, default=True)
+    
+    user = db.relationship('User', backref='saved_searches')
+
+class PriceAlert(db.Model):
+    __tablename__ = 'price_alerts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    target_price = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    user = db.relationship('User', backref='price_alerts')
+    product = db.relationship('Product', backref='price_alerts')
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    notification_type = db.Column(db.String(50))  # e.g., 'bid', 'purchase', 'message'
+    related_id = db.Column(db.Integer)  # ID of related entity
+    
+    user = db.relationship('User', backref='notifications')
+
+class WishlistItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Changed 'user.id' to 'users.id'
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    added_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    product = db.relationship('Product', backref='wishlist_items')
